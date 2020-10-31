@@ -75,6 +75,10 @@ latent_vec_size = 100
 ran_batch = torch.rand(batch_size, latent_vec_size)
 fake = g(ran_batch)
 print(fake.shape)
+
+#%%
+def show(x):
+
     
 # %%
 from torch.utils.tensorboard import SummaryWriter
@@ -87,9 +91,9 @@ def train(G, D, epochs=1):
 
     batch_idx = 0
     for epoch in range(epochs):
-        for (x, _), idx in enumerate(train_loader):
+        for idx, (x, _) in enumerate(train_loader):
             z = torch.randn(batch_size, latent_vec_size)
-            confidence_real = D(x)
+            dgz = D(G(z))
 
             optimiser_g.zero_grad()
             G_loss = torch.log(1 - D(G(z)))
