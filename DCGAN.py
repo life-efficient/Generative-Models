@@ -20,9 +20,9 @@ train_loader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
 def sample(writer=None, device='cpu', tag='test'):
     if writer is None:
         writer = SummaryWriter(log_dir=f'runs/DCGAN/{time()}')
-    z = torch.randn(batch_size, latent_vec_size).to(device)
-    for img in G(z):
-        writer.add_image(f'DCGAN/{tag}', img)
+    z = torch.randn(8, latent_vec_size).to(device)
+    # for img in G(z):
+    writer.add_images(f'DCGAN-{tag}/{time()}', G(z))
 
 #%%
 
@@ -124,9 +124,10 @@ criterion = nn.BCELoss()
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 def train(G, D, epochs=1):
-    optimiser_d = torch.optim.Adam(D.parameters(), lr=0.0001)
+    optimiser_d = torch.optim.Adam(D.parameters(), lr=0.001)
     optimiser_g = torch.optim.Adam(G.parameters(), lr=0.001)
-    writer = SummaryWriter(log_dir=f'runs/DCGAN/{time()}')
+    tag_for_run = time()
+    writer = SummaryWriter(log_dir=f'runs/DCGAN/{tag_for_run}')
     G = G.to(device)
     D = D.to(device)
     batch_idx = 0
@@ -167,9 +168,9 @@ def train(G, D, epochs=1):
                 'Loss G:', G_loss.item(),
                 'Loss D:', D_loss.item()
             )
-            if idx % 100 == 0:
+            if idx % 200 == 0:
                 print('sampling')
-                sample(writer, device, tag=f'{time()}')
+                sample(writer, device, tag=f'{tag_for_run}/epoch-{epoch}-batch-{idx}')
 
 G = Generator()
 D = Discriminator()
