@@ -4,6 +4,8 @@ from torch import nn
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
+batch_size=64
+
 train_data = datasets.MNIST(
     train=True,
     download=True,
@@ -11,7 +13,7 @@ train_data = datasets.MNIST(
     transform=transforms.ToTensor()
 )
 
-train_loader = DataLoader(train_data, shuffle=True, batch_size=16)
+train_loader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
 
 class Discriminator(nn.Module):
     def __init__(self):
@@ -70,7 +72,6 @@ class Generator(nn.Module):
         return self.layers(z)
 
 g = Generator()
-batch_size = 16
 latent_vec_size = 100
 ran_batch = torch.rand(batch_size, latent_vec_size)
 fake = g(ran_batch)
@@ -84,6 +85,8 @@ def show(x):
 from torch.utils.tensorboard import SummaryWriter
 from time import time
 
+toPILImg = transforms.ToPILImage()
+
 def train(G, D, epochs=1):
     optimiser_d = torch.optim.SGD(D.parameters(), lr=0.01)
     optimiser_g = torch.optim.SGD(G.parameters(), lr=0.01)
@@ -95,18 +98,19 @@ def train(G, D, epochs=1):
             z = torch.randn(batch_size, latent_vec_size)
             dgz = D(G(z))
 
+            # GENERATOR UPDATE
             optimiser_g.zero_grad()
             G_loss = torch.log(1 - D(G(z)))
             G_loss = torch.mean(G_loss)
             G_loss.backward(retain_graph=True)
             optimiser_g.step()
 
+            # DISCRIMINATOR UPDATE
             optimiser_d.zero_grad()
             D_loss = - (torch.log(D(x)) + torch.log(1 - D(G(z))))
             D_loss = torch.mean(D_loss)
-            D_loss.backward(retain_graph=True)
+            D_loss.backward()
             optimiser_d.step()
-
 
             print('Epoch:', epoch ,'Batch:', idx)
             print('Loss G:', G_loss.item())
@@ -114,6 +118,11 @@ def train(G, D, epochs=1):
             writer.add_scalar('Loss/G', G_loss.item(), batch_idx)
             writer.add_scalar('Loss/D', D_loss.item(), batch_idx)
             batch_idx += 1
+            # if idx > 50:
+            #     break
+        for img in G(z):
+            writer.add_image(f'Epoch {epoch}', img)
+
 
 
 G = Generator()
@@ -123,4 +132,14 @@ train(G, D)
 
 # %%
 torch.save(G, f'GAN-{time()}.pt')
+# %%
+
+def sample():
+    writer = SummaryWriter(log_dir=f'runs/DCGAN/{time()}')
+    z = torch.randn(batch_size, latent_vec_size)
+    for img in G(z):
+        writer.add_image(f'test', img)
+        print(img)
+
+sample()
 # %%
